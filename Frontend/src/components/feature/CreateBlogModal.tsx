@@ -1,12 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import RichTextEditor from '../base/RichTextEditor';
+import { blogApi } from '../../services/blog.api';
+import { spaceApi } from '../../services/space.api';
+import { hrCategoryApi } from '../../services/hrCategory.api';
+import { Space, HRCategory } from '../../database/schema';
 
 interface CreateBlogModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
-export default function CreateBlogModal({ isOpen, onClose }: CreateBlogModalProps) {
+export default function CreateBlogModal({ isOpen, onClose, onSuccess }: CreateBlogModalProps) {
   const [formData, setFormData] = useState({
     title: '',
     space: '',
@@ -16,46 +21,124 @@ export default function CreateBlogModal({ isOpen, onClose }: CreateBlogModalProp
     excerpt: '',
     tags: '',
     coverImage: '',
-    author: '',
     publishStatus: 'draft',
     visibility: 'public'
   });
 
+  const [spaces, setSpaces] = useState<Space[]>([]);
+  const [hrCategories, setHRCategories] = useState<HRCategory[]>([]);
+  const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      loadSpaces();
+      loadHRCategories();
+    }
+  }, [isOpen]);
+
+  const loadSpaces = async () => {
+    try {
+      const response = await spaceApi.getAllSpaces({ visibility: 'public' });
+      setSpaces(response.data.spaces);
+    } catch (err) {
+      console.error('Failed to load spaces:', err);
+    }
+  };
+
+  const loadHRCategories = async () => {
+    try {
+      const response = await hrCategoryApi.getAllCategories();
+      setHRCategories(response.data.categories);
+    } catch (err) {
+      console.error('Failed to load HR categories:', err);
+    }
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        setError('Image size must be less than 10MB');
+        return;
+      }
+
+      if (!['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(file.type)) {
+        setError('Please upload a valid image file (JPEG, PNG, GIF, or WEBP)');
+        return;
+      }
+
+      setCoverImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+      setError('');
+    }
+  };
+
+  const removeImage = () => {
+    setCoverImageFile(null);
+    setImagePreview('');
+    setFormData({ ...formData, coverImage: '' });
+  };
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    console.log('Creating blog post:', formData);
-    setIsSubmitting(false);
-    onClose();
-    
-    // Reset form
-    setFormData({
-      title: '',
-      space: '',
-      category: '',
-      hrCategory: '',
-      content: '',
-      excerpt: '',
-      tags: '',
-      coverImage: '',
-      author: '',
-      publishStatus: 'draft',
-      visibility: 'public'
-    });
+    setError('');
+
+    try {
+      const tagsArray = formData.tags ? formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag) : [];
+
+      const blogData = {
+        title: formData.title,
+        excerpt: formData.excerpt,
+        content: formData.content,
+        space_id: formData.space,
+        category: formData.category,
+        hr_category_id: formData.hrCategory || undefined,
+        tags: tagsArray,
+        publish_status: formData.publishStatus as 'draft' | 'published',
+        visibility: formData.visibility as 'public' | 'private',
+        cover_image_url: formData.coverImage || undefined,
+      };
+
+      await blogApi.createBlog(blogData, coverImageFile || undefined);
+
+      setFormData({
+        title: '',
+        space: '',
+        category: '',
+        hrCategory: '',
+        content: '',
+        excerpt: '',
+        tags: '',
+        coverImage: '',
+        publishStatus: 'draft',
+        visibility: 'public'
+      });
+      setCoverImageFile(null);
+      setImagePreview('');
+
+      if (onSuccess) onSuccess();
+      onClose();
+    } catch (err: any) {
+      setError(err.message || 'Failed to create blog post. Please try again.');
+      console.error('Failed to create blog:', err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] animate-fadeIn">
       <div className="bg-black border border-red-600/30 rounded-lg w-full max-w-4xl mx-4 shadow-2xl shadow-red-600/20 animate-scale-in max-h-[90vh] overflow-y-auto">
-        {/* Header */}
         <div className="sticky top-0 bg-black border-b border-red-600/30 px-6 py-4 flex items-center justify-between z-10">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 flex items-center justify-center bg-red-600/10 rounded-lg">
@@ -74,9 +157,16 @@ export default function CreateBlogModal({ isOpen, onClose }: CreateBlogModalProp
           </button>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Blog Title */}
+          {error && (
+            <div className="p-4 bg-red-600/10 border border-red-600/30 rounded-lg">
+              <p className="text-red-500 text-sm flex items-center gap-2">
+                <i className="ri-error-warning-line"></i>
+                {error}
+              </p>
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-white mb-2">
               Blog Title <span className="text-red-600">*</span>
@@ -91,7 +181,6 @@ export default function CreateBlogModal({ isOpen, onClose }: CreateBlogModalProp
             />
           </div>
 
-          {/* Space & Category */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-white mb-2">
@@ -104,11 +193,11 @@ export default function CreateBlogModal({ isOpen, onClose }: CreateBlogModalProp
                 className="w-full px-4 py-3 bg-black border border-red-600/30 rounded-lg text-white focus:outline-none focus:border-red-600 focus:ring-2 focus:ring-red-600/20 transition-all duration-300 cursor-pointer"
               >
                 <option value="">Choose a space</option>
-                <option value="MFTBCEn">MFTBC English</option>
-                <option value="MFTBCJa">MFTBC Japanese</option>
-                <option value="DTAEn">DTA English</option>
-                <option value="DTAJa">DTA Japanese</option>
-                
+                {spaces.map((space) => (
+                  <option key={space.id} value={space.id}>
+                    {space.name}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -123,71 +212,81 @@ export default function CreateBlogModal({ isOpen, onClose }: CreateBlogModalProp
                 className="w-full px-4 py-3 bg-black border border-red-600/30 rounded-lg text-white focus:outline-none focus:border-red-600 focus:ring-2 focus:ring-red-600/20 transition-all duration-300 cursor-pointer"
               >
                 <option value="">Select category</option>
-                <option value="News">News</option>
+                <option value="news">News</option>
                 <option value="hr">HR</option>
                 <option value="content">Content</option>
-                <option value="IT">IT</option>
-                <option value="personalBlog">Personal Blog</option>
-                <option value="crossfunctions">Crossfunctions</option> 
+                <option value="it">IT</option>
+                <option value="personal-blog">Personal Blog</option>
+                <option value="crossfunctions">Crossfunctions</option>
               </select>
             </div>
           </div>
 
-          {/* HR Category Selection - Only show if HR space is selected */}
           {formData.category === 'hr' && (
             <div>
               <label className="block text-sm font-medium text-white mb-2">
                 HR Category <span className="text-red-600">*</span>
               </label>
               <select
-                required={formData.space === 'hr'}
+                required={formData.category === 'hr'}
                 value={formData.hrCategory}
                 onChange={(e) => setFormData({ ...formData, hrCategory: e.target.value })}
                 className="w-full px-4 py-3 bg-black border border-red-600/30 rounded-lg text-white focus:outline-none focus:border-red-600 focus:ring-2 focus:ring-red-600/20 transition-all duration-300 cursor-pointer"
               >
                 <option value="">Select HR category</option>
-                <option value="market-recruiting">Market and Recruiting</option>
-                <option value="onboarding">Onboarding</option>
-                <option value="time-absence">Time and Absence</option>
-                <option value="compensation">Compensation</option>
-                <option value="hr-development">HR Development</option>
-                <option value="social-welfare">Social Welfare</option>
+                {hrCategories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
               </select>
               <p className="text-xs text-gray-500 mt-1">This blog will be published under the selected HR category</p>
             </div>
           )}
 
-          {/* Author */}
           <div>
             <label className="block text-sm font-medium text-white mb-2">
-              Author <span className="text-red-600">*</span>
+              Banner Image
             </label>
-            <input
-              type="text"
-              required
-              value={formData.author}
-              onChange={(e) => setFormData({ ...formData, author: e.target.value })}
-              placeholder="Author name"
-              className="w-full px-4 py-3 bg-black border border-red-600/30 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-red-600 focus:ring-2 focus:ring-red-600/20 transition-all duration-300"
-            />
+            <div className="space-y-3">
+              {imagePreview ? (
+                <div className="relative">
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="w-full h-48 object-cover rounded-lg border border-red-600/30"
+                  />
+                  <button
+                    type="button"
+                    onClick={removeImage}
+                    className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-red-600 text-white rounded-full hover:bg-red-700 transition-all duration-300 cursor-pointer"
+                  >
+                    <i className="ri-close-line"></i>
+                  </button>
+                </div>
+              ) : (
+                <label className="w-full px-4 py-6 bg-black border-2 border-dashed border-red-600/30 rounded-lg hover:border-red-600/50 transition-all duration-300 flex flex-col items-center justify-center cursor-pointer">
+                  <i className="ri-image-add-line text-4xl text-red-600 mb-2"></i>
+                  <span className="text-white text-sm mb-1">Click to upload banner image</span>
+                  <span className="text-gray-500 text-xs">JPEG, PNG, GIF or WEBP (max 10MB)</span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    onChange={handleImageChange}
+                    className="hidden"
+                  />
+                </label>
+              )}
+              <input
+                type="url"
+                value={formData.coverImage}
+                onChange={(e) => setFormData({ ...formData, coverImage: e.target.value })}
+                placeholder="Or paste an image URL"
+                className="w-full px-4 py-3 bg-black border border-red-600/30 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-red-600 focus:ring-2 focus:ring-red-600/20 transition-all duration-300"
+              />
+            </div>
           </div>
 
-          {/* Cover Image */}
-          <div>
-            <label className="block text-sm font-medium text-white mb-2">
-              Cover Image URL
-            </label>
-            <input
-              type="url"
-              value={formData.coverImage}
-              onChange={(e) => setFormData({ ...formData, coverImage: e.target.value })}
-              placeholder="https://example.com/image.jpg"
-              className="w-full px-4 py-3 bg-black border border-red-600/30 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-red-600 focus:ring-2 focus:ring-red-600/20 transition-all duration-300"
-            />
-            <p className="text-xs text-gray-500 mt-1">Add a featured image for your blog post</p>
-          </div>
-
-          {/* Excerpt */}
           <div>
             <label className="block text-sm font-medium text-white mb-2">
               Excerpt <span className="text-red-600">*</span>
@@ -204,7 +303,6 @@ export default function CreateBlogModal({ isOpen, onClose }: CreateBlogModalProp
             <p className="text-xs text-gray-500 mt-1">{formData.excerpt.length}/200 characters</p>
           </div>
 
-          {/* Content - Rich Text Editor */}
           <div>
             <label className="block text-sm font-medium text-white mb-2">
               Blog Content <span className="text-red-600">*</span>
@@ -214,10 +312,9 @@ export default function CreateBlogModal({ isOpen, onClose }: CreateBlogModalProp
               onChange={(value) => setFormData({ ...formData, content: value })}
               placeholder="Write your blog post content here... Use the toolbar to format your text."
             />
-            <p className="text-xs text-gray-500 mt-2">{formData.content.length}/10000 characters</p>
+            <p className="text-xs text-gray-500 mt-2">{formData.content.length} characters</p>
           </div>
 
-          {/* Tags */}
           <div>
             <label className="block text-sm font-medium text-white mb-2">
               Tags
@@ -231,7 +328,6 @@ export default function CreateBlogModal({ isOpen, onClose }: CreateBlogModalProp
             />
           </div>
 
-          {/* Publish Status & Visibility */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-white mb-2">
@@ -286,7 +382,6 @@ export default function CreateBlogModal({ isOpen, onClose }: CreateBlogModalProp
             </div>
           </div>
 
-          {/* Action Buttons */}
           <div className="flex items-center gap-3 pt-4">
             <button
               type="button"
