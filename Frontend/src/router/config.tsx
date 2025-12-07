@@ -11,55 +11,100 @@ import AdminPanel from "../pages/admin/page";
 import HRPage from "../pages/hr/page";
 import MyContentPage from "../pages/my-content/page";
 import LoginPage from "@/pages/login/page";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
 const routes: RouteObject[] = [
-  // {
-  //   path: "/",
-  //   element: <Home />,
-  // },
   {
     path: "/",
+    element: (
+      <ProtectedRoute>
+        <Home />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/login",
     element: <LoginPage />,
   },
   {
     path: "/home",
-    element: <Home />,
+    element: (
+      <ProtectedRoute>
+        <Home />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/news",
-    element: <NewsPage />,
+    element: (
+      <ProtectedRoute>
+        <NewsPage />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/news/:id",
-    element: <NewsDetailPage />,
+    element: (
+      <ProtectedRoute>
+        <NewsDetailPage />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/activity",
-    element: <ActivityPage />,
+    element: (
+      <ProtectedRoute>
+        <ActivityPage />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/activity/:id",
-    element: <ActivityDetailPage />,
+    element: (
+      <ProtectedRoute>
+        <ActivityDetailPage />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/crossfunction",
-    element: <CrossfunctionPage />,
+    element: (
+      <ProtectedRoute>
+        <CrossfunctionPage />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/crossfunction/:id",
-    element: <CrossfunctionDetailPage />,
+    element: (
+      <ProtectedRoute>
+        <CrossfunctionDetailPage />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/hr",
-    element: <HRPage />,
+    element: (
+      <ProtectedRoute>
+        <HRPage />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/my-content",
-    element: <MyContentPage />,
+    element: (
+      <ProtectedRoute>
+        <MyContentPage />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/admin",
-    element: <AdminPanel />,
+    element: (
+      <ProtectedRoute requireAdmin>
+        <AdminPanel />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "*",

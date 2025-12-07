@@ -1,16 +1,26 @@
 import { useState } from 'react';
+import { userApi } from '../../../services/user.api';
 
 interface CreateInternalUserModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
-export default function CreateInternalUserModal({ isOpen, onClose }: CreateInternalUserModalProps) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+export default function CreateInternalUserModal({ isOpen, onClose, onSuccess }: CreateInternalUserModalProps) {
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    full_name: '',
+    job_title: '',
+    phone: '',
+    location: '',
+  });
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<'internal' | 'admin' | 'external'>('internal');
   const [selectedTabs, setSelectedTabs] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
   const availableTabs = [
     { id: 'home', label: 'Home', icon: 'ri-home-line' },
@@ -29,23 +39,35 @@ export default function CreateInternalUserModal({ isOpen, onClose }: CreateInter
     );
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Create user logic here
-    console.log({
-      email,
-      password,
-      role,
-      accessTabs: role === 'external' ? selectedTabs : 'all'
-    });
+    setIsSubmitting(true);
+    setError('');
 
-    // Reset form
-    setEmail('');
-    setPassword('');
-    setRole('internal');
-    setSelectedTabs([]);
-    onClose();
+    try {
+      await userApi.createUser({
+        ...formData,
+        role: role as 'admin' | 'internal' | 'external',
+      });
+
+      setFormData({
+        email: '',
+        password: '',
+        full_name: '',
+        job_title: '',
+        phone: '',
+        location: '',
+      });
+      setRole('internal');
+      setSelectedTabs([]);
+
+      if (onSuccess) onSuccess();
+      onClose();
+    } catch (err: any) {
+      setError(err.message || 'Failed to create user. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -74,28 +96,47 @@ export default function CreateInternalUserModal({ isOpen, onClose }: CreateInter
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Email Field */}
-          <div>
-            <label htmlFor="user-email" className="block text-sm font-medium text-gray-300 mb-2">
-              Email Address <span className="text-red-600">*</span>
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <i className="ri-mail-line text-gray-400"></i>
-              </div>
+          {error && (
+            <div className="p-4 bg-red-600/10 border border-red-600/30 rounded-lg">
+              <p className="text-red-500 text-sm flex items-center gap-2">
+                <i className="ri-error-warning-line"></i>
+                {error}
+              </p>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="user-full-name" className="block text-sm font-medium text-gray-300 mb-2">
+                Full Name <span className="text-red-600">*</span>
+              </label>
+              <input
+                type="text"
+                id="user-full-name"
+                value={formData.full_name}
+                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 transition-all duration-300"
+                placeholder="John Doe"
+                required
+              />
+            </div>
+
+            <div>
+              <label htmlFor="user-email" className="block text-sm font-medium text-gray-300 mb-2">
+                Email Address <span className="text-red-600">*</span>
+              </label>
               <input
                 type="email"
                 id="user-email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-11 pr-4 py-3 bg-dark-bg border border-dark-border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 transition-all duration-300"
-                placeholder="user@company.com"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 transition-all duration-300"
+                placeholder="john.doe@company.com"
                 required
               />
             </div>
           </div>
 
-          {/* Password Field */}
           <div>
             <label htmlFor="user-password" className="block text-sm font-medium text-gray-300 mb-2">
               Password <span className="text-red-600">*</span>
@@ -107,10 +148,11 @@ export default function CreateInternalUserModal({ isOpen, onClose }: CreateInter
               <input
                 type={showPassword ? 'text' : 'password'}
                 id="user-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 className="w-full pl-11 pr-12 py-3 bg-dark-bg border border-dark-border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 transition-all duration-300"
                 placeholder="Enter password"
+                minLength={6}
                 required
               />
               <button
@@ -121,7 +163,51 @@ export default function CreateInternalUserModal({ isOpen, onClose }: CreateInter
                 <i className={showPassword ? 'ri-eye-off-line' : 'ri-eye-line'}></i>
               </button>
             </div>
-            <p className="text-xs text-gray-500 mt-1">Minimum 8 characters</p>
+            <p className="text-xs text-gray-500 mt-1">Minimum 6 characters</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="user-job-title" className="block text-sm font-medium text-gray-300 mb-2">
+                Job Title
+              </label>
+              <input
+                type="text"
+                id="user-job-title"
+                value={formData.job_title}
+                onChange={(e) => setFormData({ ...formData, job_title: e.target.value })}
+                className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 transition-all duration-300"
+                placeholder="Software Engineer"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="user-phone" className="block text-sm font-medium text-gray-300 mb-2">
+                Phone
+              </label>
+              <input
+                type="tel"
+                id="user-phone"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 transition-all duration-300"
+                placeholder="+1 (555) 000-0000"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="user-location" className="block text-sm font-medium text-gray-300 mb-2">
+              Location
+            </label>
+            <input
+              type="text"
+              id="user-location"
+              value={formData.location}
+              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+              className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 transition-all duration-300"
+              placeholder="Tokyo, Japan"
+            />
           </div>
 
           {/* Role Selection */}
@@ -245,11 +331,20 @@ export default function CreateInternalUserModal({ isOpen, onClose }: CreateInter
             </button>
             <button
               type="submit"
-              disabled={role === 'external' && selectedTabs.length === 0}
+              disabled={isSubmitting || (role === 'external' && selectedTabs.length === 0)}
               className="flex-1 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:shadow-lg hover:shadow-red-600/50 transition-all duration-300 font-medium disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
             >
-              <i className="ri-user-add-line"></i>
-              <span>Create User</span>
+              {isSubmitting ? (
+                <>
+                  <i className="ri-loader-4-line animate-spin"></i>
+                  <span>Creating...</span>
+                </>
+              ) : (
+                <>
+                  <i className="ri-user-add-line"></i>
+                  <span>Create User</span>
+                </>
+              )}
             </button>
           </div>
         </form>
