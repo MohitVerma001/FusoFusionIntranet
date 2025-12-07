@@ -1,10 +1,11 @@
-
 import { useState } from 'react';
+import CreateInternalUserModal from './CreateInternalUserModal';
 
 export default function UserManagement() {
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
+  const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState(false);
 
   const userTabs = [
     { id: 'all', label: 'All Users', count: 1247 },
@@ -45,6 +46,21 @@ export default function UserManagement() {
 
   return (
     <div className="space-y-6">
+      {/* Header with Create Button */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-white">User Management</h2>
+          <p className="text-gray-400 mt-1">Manage user accounts and access</p>
+        </div>
+        <button
+          onClick={() => setIsCreateUserModalOpen(true)}
+          className="px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:shadow-lg hover:shadow-red-600/50 transition-all duration-300 font-medium cursor-pointer whitespace-nowrap flex items-center gap-2"
+        >
+          <i className="ri-user-add-line text-lg"></i>
+          <span>Internal User</span>
+        </button>
+      </div>
+
       {/* Header Actions */}
       <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
         <div className="relative flex-1 max-w-md w-full">
@@ -248,6 +264,12 @@ export default function UserManagement() {
           </div>
         </div>
       )}
+
+      {/* Create User Modal */}
+      <CreateInternalUserModal
+        isOpen={isCreateUserModalOpen}
+        onClose={() => setIsCreateUserModalOpen(false)}
+      />
     </div>
   );
 }
