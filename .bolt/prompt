@@ -1,0 +1,23 @@
+1) NEVER use Bolt Database or Supabase.
+2) Use React for frontend and Node.js for backend.
+3) Backend must always use PostgreSQL as the database.
+4) Create all README files only inside the /READMEs folder.
+5) Frontend UI must always be modern, compact, and fully responsive on desktop/tablet/mobile.
+6) All backend API URLs must be read from VITE_API_BASE_URL environment variable.
+7) Follow this folder structure: frontend/ (components, pages, services, layouts), backend/ (routes, controllers, services, models, middlewares), READMEs/, scripts/, migrations/, config.
+8) Frontend must follow a component-based structure: /components, /pages, /layouts, /hooks, /context, /services, /utils.
+9) All API calls from the frontend must be done through a single centralized HTTP wrapper inside /services/http.service.js.
+10) Each API entity (Spaces, News, Auth, Users, etc.) must have its own API module inside /services/ (e.g., spaces.api.js, news.api.js)
+11) Frontend must support runtime environment variables using public/env.js and read values using window.__ENV.*.
+12) Backend must follow clean layering: /routes → /controllers → /services → /models → /config.
+13) All backend routes must follow REST standards and begin with /api/....
+14) Backend must store database config, environment loader, and logger inside /config.
+15) SQL queries or Prisma models must be organized inside /models.
+16) Backend must contain /middlewares for authentication, validation, and error handling.
+17) Project folder structure must follow: frontend/, backend/, READMEs/, scripts/, migrations/, config/.
+18) UI must strictly follow the FUSO brand theme using black (#000000), red (#E60000), and light grey (#f5f5f7).
+19) Black (#000000) should not exceed 30% of any page (used mainly for headings, text, icons, and key sections).
+20) Red (#E60000) should be used as the primary accent color and must not exceed 10% per page (used for CTAs, highlights, and action elements).
+21) Light grey (#f5f5f7) must cover at least 60% of every page (as the main background and layout base).
+22)All primary action buttons must use the brand secondary color red (#E60000).
+23) Cancel buttons or non-primary actions must use neutral colors (black outline or grey tones).
