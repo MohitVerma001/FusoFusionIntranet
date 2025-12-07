@@ -10,10 +10,19 @@ import CrossfunctionDetailPage from "../pages/crossfunction/detail/page";
 import AdminPanel from "../pages/admin/page";
 import HRPage from "../pages/hr/page";
 import MyContentPage from "../pages/my-content/page";
+import LoginPage from "@/pages/login/page";
 
 const routes: RouteObject[] = [
+  // {
+  //   path: "/",
+  //   element: <Home />,
+  // },
   {
     path: "/",
+    element: <LoginPage />,
+  },
+  {
+    path: "/home",
     element: <Home />,
   },
   {

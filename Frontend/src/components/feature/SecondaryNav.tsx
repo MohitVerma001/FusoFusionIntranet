@@ -23,7 +23,7 @@ export default function SecondaryNav({ userRole = 'internal' }: SecondaryNavProp
   }, []);
 
   const navItems = [
-    { path: '/', label: 'Home', icon: 'ri-home-5-line' },
+    { path: '/home', label: 'Home', icon: 'ri-home-5-line' },
     { path: '/news', label: 'News', icon: 'ri-newspaper-line' },
     { path: '/activity', label: 'Activity', icon: 'ri-calendar-event-line' },
     { path: '/crossfunction', label: 'Crossfunction', icon: 'ri-group-line' },

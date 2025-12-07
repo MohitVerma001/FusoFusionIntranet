@@ -206,7 +206,7 @@ export default function GlobalNav({ userRole = 'internal' }: GlobalNavProps) {
         <div className="w-full px-6">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-3 group cursor-pointer">
+            <Link to="/home" className="flex items-center gap-3 group cursor-pointer">
               <div className="w-10 h-10 bg-gradient-to-br from-red-600 to-red-700 rounded-lg flex items-center justify-center transform group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg shadow-red-600/30">
                 <span className="text-white font-bold text-lg">F</span>
               </div>

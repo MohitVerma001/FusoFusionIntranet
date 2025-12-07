@@ -15,7 +15,7 @@ export default function LoginPage() {
     setTimeout(() => {
       setIsLoading(false);
       // Navigate to home after successful login
-      window.REACT_APP_NAVIGATE('/');
+      window.REACT_APP_NAVIGATE('/home');
     }, 1500);
   };
 
