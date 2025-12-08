@@ -33,4 +33,10 @@ router.patch(
 
 router.delete('/:id', protect, blogController.deleteBlog);
 
+router.post(
+  '/upload-image',
+  upload.single('cover_image'),
+  blogController.uploadImage
+);
+
 export default router;

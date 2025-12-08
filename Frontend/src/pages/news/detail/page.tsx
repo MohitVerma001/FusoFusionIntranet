@@ -4,6 +4,7 @@ import GlobalNav from '../../../components/feature/GlobalNav';
 import Footer from '../../../components/feature/Footer';
 import { blogApi } from '../../../services/blog.api';
 import { BlogPost } from '../../../database/schema';
+import { commentApi, Comment } from '../../../services/comment.api';
 
 export default function NewsDetailPage() {
   const { id } = useParams();
@@ -16,6 +17,9 @@ export default function NewsDetailPage() {
   const [blog, setBlog] = useState<BlogPost | null>(null);
   const [loading, setLoading] = useState(true);
   const [relatedBlogs, setRelatedBlogs] = useState<BlogPost[]>([]);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
 
   useEffect(() => {
     const fetchBlogDetail = async () => {
@@ -31,6 +35,8 @@ export default function NewsDetailPage() {
           limit: 3
         });
         setRelatedBlogs(relatedResponse.data.blogs.filter(b => b.id !== id).slice(0, 3));
+
+        await fetchComments();
       } catch (error) {
         console.error('Error fetching blog:', error);
       } finally {
@@ -40,6 +46,20 @@ export default function NewsDetailPage() {
 
     fetchBlogDetail();
   }, [id]);
+
+  const fetchComments = async () => {
+    if (!id) return;
+
+    try {
+      setCommentsLoading(true);
+      const response = await commentApi.getCommentsByEntity('blog', id);
+      setComments(response.data.comments);
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+    } finally {
+      setCommentsLoading(false);
+    }
+  };
 
   useEffect(() => {
     const likedBlogs = JSON.parse(localStorage.getItem('likedBlogs') || '[]');
@@ -134,7 +154,43 @@ export default function NewsDetailPage() {
   });
   const readTime = calculateReadTime(blog.content);
 
-  const comments: any[] = [];
+  const handleSubmitComment = async () => {
+    if (!comment.trim() || !id) return;
+
+    try {
+      setIsSubmittingComment(true);
+      await commentApi.createComment({
+        content: comment,
+        entity_type: 'blog',
+        entity_id: id,
+      });
+
+      setComment('');
+      await fetchComments();
+    } catch (error) {
+      console.error('Error submitting comment:', error);
+      alert('Failed to post comment. Please try again.');
+    } finally {
+      setIsSubmittingComment(false);
+    }
+  };
+
+  const handleLikeComment = async (commentId: string) => {
+    try {
+      const commentToUpdate = comments.find(c => c.id === commentId);
+      if (!commentToUpdate) return;
+
+      if (commentToUpdate.has_user_liked) {
+        await commentApi.unlikeComment(commentId);
+      } else {
+        await commentApi.likeComment(commentId);
+      }
+
+      await fetchComments();
+    } catch (error) {
+      console.error('Error liking comment:', error);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-dark-bg">
@@ -300,7 +356,7 @@ export default function NewsDetailPage() {
             {/* Comments Section */}
             <div className="bg-dark-card border border-dark-border rounded-lg p-8 mb-10 animate-slide-up">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-2xl font-bold text-white">Comments ({blog.comments_count || 0})</h3>
+                <h3 className="text-2xl font-bold text-white">Comments ({comments.length})</h3>
                 <button
                   onClick={() => setShowComments(!showComments)}
                   className="text-sm text-red-500 hover:text-red-400 transition-colors duration-200 cursor-pointer"
@@ -318,11 +374,16 @@ export default function NewsDetailPage() {
                   className="w-full px-4 py-3 bg-dark-hover border border-dark-border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-red-600 focus:ring-2 focus:ring-red-600/20 transition-all duration-200 resize-none"
                   rows={3}
                   maxLength={500}
+                  disabled={isSubmittingComment}
                 />
                 <div className="flex items-center justify-between mt-3">
                   <span className="text-sm text-gray-500">{comment.length}/500</span>
-                  <button className="px-6 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg font-medium hover:shadow-lg hover:shadow-red-600/30 transition-all duration-200 whitespace-nowrap cursor-pointer">
-                    Post Comment
+                  <button
+                    onClick={handleSubmitComment}
+                    disabled={isSubmittingComment || !comment.trim()}
+                    className="px-6 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg font-medium hover:shadow-lg hover:shadow-red-600/30 transition-all duration-200 whitespace-nowrap cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSubmittingComment ? 'Posting...' : 'Post Comment'}
                   </button>
                 </div>
               </div>
@@ -330,28 +391,54 @@ export default function NewsDetailPage() {
               {/* Comments List */}
               {showComments && (
                 <div className="space-y-4">
-                  {comments.map((comment) => (
-                    <div key={comment.id} className="bg-dark-hover border border-dark-border rounded-lg p-5">
-                      <div className="flex items-start gap-4">
-                        <div className="w-10 h-10 bg-gradient-to-br from-red-600 to-red-700 rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0">
-                          {comment.avatar}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between mb-2">
-                            <div>
-                              <div className="text-white font-semibold">{comment.author}</div>
-                              <div className="text-xs text-gray-500">{comment.role} • {comment.date}</div>
-                            </div>
-                            <button className="flex items-center gap-1.5 text-gray-400 hover:text-red-500 transition-colors duration-200 cursor-pointer">
-                              <i className="ri-heart-line"></i>
-                              <span className="text-sm">{comment.likes}</span>
-                            </button>
-                          </div>
-                          <p className="text-gray-300 leading-relaxed">{comment.content}</p>
-                        </div>
-                      </div>
+                  {commentsLoading ? (
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-red-600 mx-auto"></div>
                     </div>
-                  ))}
+                  ) : comments.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      No comments yet. Be the first to comment!
+                    </div>
+                  ) : (
+                    comments.map((commentItem) => {
+                      const commentDate = new Date(commentItem.created_at).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      });
+
+                      return (
+                        <div key={commentItem.id} className="bg-dark-hover border border-dark-border rounded-lg p-5">
+                          <div className="flex items-start gap-4">
+                            <div className="w-10 h-10 bg-gradient-to-br from-red-600 to-red-700 rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0">
+                              {commentItem.author_name.substring(0, 2).toUpperCase()}
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between mb-2">
+                                <div>
+                                  <div className="text-white font-semibold">{commentItem.author_name}</div>
+                                  <div className="text-xs text-gray-500">
+                                    {commentDate}
+                                    {commentItem.is_edited && <span className="ml-2">(edited)</span>}
+                                  </div>
+                                </div>
+                                <button
+                                  onClick={() => handleLikeComment(commentItem.id)}
+                                  className="flex items-center gap-1.5 text-gray-400 hover:text-red-500 transition-colors duration-200 cursor-pointer"
+                                >
+                                  <i className={commentItem.has_user_liked ? 'ri-heart-fill text-red-500' : 'ri-heart-line'}></i>
+                                  <span className="text-sm">{commentItem.likes_count}</span>
+                                </button>
+                              </div>
+                              <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">{commentItem.content}</p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               )}
             </div>

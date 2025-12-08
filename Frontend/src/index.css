@@ -245,4 +245,9 @@
   .blog-content hr {
     @apply border-t border-dark-border my-8;
   }
+
+  /* Rich Text Editor Image Styles */
+  .editor-image {
+    @apply rounded-lg my-4 max-w-full h-auto;
+  }
 }

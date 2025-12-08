@@ -4,6 +4,7 @@ import userRoutes from './userRoutes.js';
 import blogRoutes from './blogRoutes.js';
 import spaceRoutes from './spaceRoutes.js';
 import hrCategoryRoutes from './hrCategoryRoutes.js';
+import commentRoutes from './commentRoutes.js';
 
 const router = express.Router();
 
@@ -16,6 +17,7 @@ router.get('/', (req, res) => {
       blogs: "/api/blogs",
       spaces: "/api/spaces",
       hr_categories: "/api/hr-categories",
+      comments: "/api/comments",
       health: "/api/health",
     }
   });
@@ -26,6 +28,7 @@ router.use('/users', userRoutes);
 router.use('/blogs', blogRoutes);
 router.use('/spaces', spaceRoutes);
 router.use('/hr-categories', hrCategoryRoutes);
+router.use('/comments', commentRoutes);
 
 router.get('/health', (req, res) => {
   res.status(200).json({

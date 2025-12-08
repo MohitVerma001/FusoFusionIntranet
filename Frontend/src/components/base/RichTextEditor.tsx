@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
@@ -11,6 +11,7 @@ import { HeadingNode, QuoteNode } from '@lexical/rich-text';
 import { ListItemNode, ListNode } from '@lexical/list';
 import { CodeNode } from '@lexical/code';
 import { LinkNode } from '@lexical/link';
+import { ImageNode } from '@lexical/image';
 import {
   $getRoot,
   $getSelection,
@@ -20,11 +21,14 @@ import {
   REDO_COMMAND,
   $createParagraphNode,
   type EditorState,
+  $insertNodes,
+  $createTextNode,
 } from 'lexical';
 import { $setBlocksType } from '@lexical/selection';
 import { $createHeadingNode, $createQuoteNode } from '@lexical/rich-text';
 import { INSERT_ORDERED_LIST_COMMAND, INSERT_UNORDERED_LIST_COMMAND } from '@lexical/list';
 import { $createCodeNode } from '@lexical/code';
+import { $createImageNode } from '@lexical/image';
 
 interface RichTextEditorProps {
   value: string;
@@ -34,6 +38,7 @@ interface RichTextEditorProps {
 
 function ToolbarPlugin() {
   const [editor] = useLexicalComposerContext();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const formatText = (format: 'bold' | 'italic' | 'underline' | 'strikethrough' | 'code') => {
     editor.dispatchCommand(FORMAT_TEXT_COMMAND, format);
@@ -85,6 +90,52 @@ function ToolbarPlugin() {
 
   const insertNumberedList = () => {
     editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined);
+  };
+
+  const insertImage = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('cover_image', file);
+
+    try {
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+      const response = await fetch(`${API_BASE_URL}/api/blogs/upload-image`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error('Upload failed');
+
+      const data = await response.json();
+      const imageUrl = `${API_BASE_URL}${data.imageUrl}`;
+
+      editor.update(() => {
+        const imageNode = $createImageNode({
+          src: imageUrl,
+          altText: file.name,
+          maxWidth: 800,
+        });
+        $insertNodes([imageNode]);
+      });
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      alert('Failed to upload image');
+    }
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const undo = () => {
@@ -229,6 +280,25 @@ function ToolbarPlugin() {
 
       <div className="w-px h-6 bg-red-600/30 mx-1"></div>
 
+      {/* Image Upload */}
+      <button
+        type="button"
+        onClick={insertImage}
+        className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-white hover:bg-red-600/10 rounded transition-all duration-200 cursor-pointer"
+        title="Insert Image"
+      >
+        <i className="ri-image-add-line"></i>
+      </button>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleImageUpload}
+        className="hidden"
+      />
+
+      <div className="w-px h-6 bg-red-600/30 mx-1"></div>
+
       {/* Alignment */}
       <button
         type="button"
@@ -273,8 +343,89 @@ function OnChangePluginWrapper({ onChange }: { onChange: (value: string) => void
 
 function $generateHtmlFromNodes(editor: any): string {
   const root = $getRoot();
-  const textContent = root.getTextContent();
-  return textContent;
+  return nodeToHtml(root);
+}
+
+function nodeToHtml(node: any): string {
+  const type = node.getType();
+  const children = node.getChildren();
+
+  if (type === 'root') {
+    return children.map((child: any) => nodeToHtml(child)).join('');
+  }
+
+  if (type === 'paragraph') {
+    const content = children.map((child: any) => nodeToHtml(child)).join('');
+    return content ? `<p>${content}</p>` : '';
+  }
+
+  if (type === 'heading') {
+    const tag = node.getTag();
+    const content = children.map((child: any) => nodeToHtml(child)).join('');
+    return `<${tag}>${content}</${tag}>`;
+  }
+
+  if (type === 'quote') {
+    const content = children.map((child: any) => nodeToHtml(child)).join('');
+    return `<blockquote>${content}</blockquote>`;
+  }
+
+  if (type === 'code') {
+    const content = children.map((child: any) => nodeToHtml(child)).join('');
+    return `<pre><code>${content}</code></pre>`;
+  }
+
+  if (type === 'list') {
+    const tag = node.getListType() === 'bullet' ? 'ul' : 'ol';
+    const content = children.map((child: any) => nodeToHtml(child)).join('');
+    return `<${tag}>${content}</${tag}>`;
+  }
+
+  if (type === 'listitem') {
+    const content = children.map((child: any) => nodeToHtml(child)).join('');
+    return `<li>${content}</li>`;
+  }
+
+  if (type === 'image') {
+    const src = node.__src;
+    const alt = node.__altText || '';
+    const maxWidth = node.__maxWidth || 800;
+    return `<img src="${src}" alt="${alt}" style="max-width:${maxWidth}px;width:100%;height:auto;" />`;
+  }
+
+  if (type === 'link') {
+    const url = node.__url;
+    const content = children.map((child: any) => nodeToHtml(child)).join('');
+    return `<a href="${url}">${content}</a>`;
+  }
+
+  if (type === 'text') {
+    let text = node.getTextContent();
+
+    if (node.hasFormat('bold')) {
+      text = `<strong>${text}</strong>`;
+    }
+    if (node.hasFormat('italic')) {
+      text = `<em>${text}</em>`;
+    }
+    if (node.hasFormat('underline')) {
+      text = `<u>${text}</u>`;
+    }
+    if (node.hasFormat('strikethrough')) {
+      text = `<s>${text}</s>`;
+    }
+    if (node.hasFormat('code')) {
+      text = `<code>${text}</code>`;
+    }
+
+    return text;
+  }
+
+  if (type === 'linebreak') {
+    return '<br>';
+  }
+
+  return children.map((child: any) => nodeToHtml(child)).join('');
 }
 
 export default function RichTextEditor({ value, onChange, placeholder = 'Start writing...' }: RichTextEditorProps) {
@@ -287,6 +438,7 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Start w
         italic: 'italic',
         underline: 'underline',
       },
+      image: 'editor-image',
     },
     onError: (error: Error) => {
       console.error(error);
@@ -298,6 +450,7 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Start w
       ListItemNode,
       CodeNode,
       LinkNode,
+      ImageNode,
     ],
   };
 
