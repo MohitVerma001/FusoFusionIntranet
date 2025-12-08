@@ -81,7 +81,10 @@ export default function LatestNews() {
 
       <div className="space-y-4">
         {newsItems.map((news) => {
-          const coverImage = news.cover_image_url || 'https://images.pexels.com/photos/546819/pexels-photo-546819.jpeg?auto=compress&cs=tinysrgb&w=800';
+          const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+          const coverImage = news.cover_image_url
+            ? (news.cover_image_url.startsWith('http') ? news.cover_image_url : `${API_BASE_URL}${news.cover_image_url}`)
+            : 'https://images.pexels.com/photos/546819/pexels-photo-546819.jpeg?auto=compress&cs=tinysrgb&w=800';
           const publishDate = new Date(news.published_at || news.created_at).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
@@ -100,6 +103,10 @@ export default function LatestNews() {
                     src={coverImage}
                     alt={news.title}
                     className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = 'https://images.pexels.com/photos/546819/pexels-photo-546819.jpeg?auto=compress&cs=tinysrgb&w=800';
+                    }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                 </div>

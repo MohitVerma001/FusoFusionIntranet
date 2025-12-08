@@ -146,7 +146,10 @@ export default function NewsDetailPage() {
     );
   }
 
-  const coverImage = blog.cover_image_url || 'https://images.pexels.com/photos/546819/pexels-photo-546819.jpeg?auto=compress&cs=tinysrgb&w=1200';
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+  const coverImage = blog.cover_image_url
+    ? (blog.cover_image_url.startsWith('http') ? blog.cover_image_url : `${API_BASE_URL}${blog.cover_image_url}`)
+    : 'https://images.pexels.com/photos/546819/pexels-photo-546819.jpeg?auto=compress&cs=tinysrgb&w=1200';
   const publishDate = new Date(blog.published_at || blog.created_at).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',

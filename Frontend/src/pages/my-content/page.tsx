@@ -88,17 +88,17 @@ export default function MyContentPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
-      <GlobalNav />
-      
+    <div className="min-h-screen bg-dark-bg flex flex-col">
+      <GlobalNav userRole="admin" />
+
       {/* Hero Section with Collapse */}
       <div className={`relative overflow-hidden transition-all duration-700 ease-in-out ${
-        isScrolled ? 'h-[20px]' : 'h-[350px]'
+        isScrolled ? 'h-0' : 'h-[200px]'
       }`}>
         <div className={`absolute inset-0 transition-opacity duration-700 ${
-          isScrolled ? 'opacity-0' : 'opacity-100'
+          isScrolled ? 'opacity-0 pointer-events-none' : 'opacity-100'
         }`}>
-          <div className="bg-gradient-to-r from-red-600 to-black text-white py-12">
+          <div className="bg-gradient-to-r from-red-600 to-black text-white h-full flex items-center">
             <div className="max-w-7xl mx-auto px-6">
               <h1 className="text-4xl font-bold mb-2">My Content</h1>
               <p className="text-lg text-red-100">Manage and edit all your published content</p>
@@ -108,70 +108,72 @@ export default function MyContentPage() {
       </div>
 
       {/* Secondary Navigation */}
-      <SecondaryNav userRole="admin" />
+      <div className={`sticky transition-all duration-700 ${isScrolled ? 'top-16 z-40' : 'top-0 z-30'}`}>
+        <SecondaryNav userRole="admin" />
+      </div>
       
       <main className="flex-1 pt-6">
         {/* Stats Cards */}
         <div className={`max-w-7xl mx-auto px-6 mb-8 transition-all duration-700 ${
-          isScrolled ? 'mt-4' : '-mt-8'
+          isScrolled ? 'mt-4' : 'mt-6'
         }`}>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div className="bg-white rounded-lg shadow-lg p-6 border-t-4 border-red-600">
+            <div className="bg-dark-card border border-dark-border rounded-lg p-6 hover:border-red-600/50 transition-all duration-300">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">Total Content</p>
-                  <p className="text-3xl font-bold text-gray-900">{stats.total}</p>
+                  <p className="text-sm text-gray-400 mb-1">Total Content</p>
+                  <p className="text-3xl font-bold text-white">{stats.total}</p>
                 </div>
-                <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                  <i className="ri-file-list-3-line text-2xl text-red-600"></i>
+                <div className="w-12 h-12 bg-red-600/20 rounded-lg flex items-center justify-center">
+                  <i className="ri-file-list-3-line text-2xl text-red-500"></i>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow-lg p-6 border-t-4 border-green-600">
+            <div className="bg-dark-card border border-dark-border rounded-lg p-6 hover:border-red-600/50 transition-all duration-300">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">Published</p>
-                  <p className="text-3xl font-bold text-gray-900">{stats.published}</p>
+                  <p className="text-sm text-gray-400 mb-1">Published</p>
+                  <p className="text-3xl font-bold text-white">{stats.published}</p>
                 </div>
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                  <i className="ri-checkbox-circle-line text-2xl text-green-600"></i>
+                <div className="w-12 h-12 bg-red-600/20 rounded-lg flex items-center justify-center">
+                  <i className="ri-checkbox-circle-line text-2xl text-red-500"></i>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow-lg p-6 border-t-4 border-orange-600">
+            <div className="bg-dark-card border border-dark-border rounded-lg p-6 hover:border-red-600/50 transition-all duration-300">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">Drafts</p>
-                  <p className="text-3xl font-bold text-gray-900">{stats.draft}</p>
+                  <p className="text-sm text-gray-400 mb-1">Drafts</p>
+                  <p className="text-3xl font-bold text-white">{stats.draft}</p>
                 </div>
-                <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                  <i className="ri-draft-line text-2xl text-orange-600"></i>
+                <div className="w-12 h-12 bg-red-600/20 rounded-lg flex items-center justify-center">
+                  <i className="ri-draft-line text-2xl text-red-500"></i>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow-lg p-6 border-t-4 border-blue-600">
+            <div className="bg-dark-card border border-dark-border rounded-lg p-6 hover:border-red-600/50 transition-all duration-300">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">Total Views</p>
-                  <p className="text-3xl font-bold text-gray-900">{stats.totalViews}</p>
+                  <p className="text-sm text-gray-400 mb-1">Total Views</p>
+                  <p className="text-3xl font-bold text-white">{stats.totalViews}</p>
                 </div>
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <i className="ri-eye-line text-2xl text-blue-600"></i>
+                <div className="w-12 h-12 bg-red-600/20 rounded-lg flex items-center justify-center">
+                  <i className="ri-eye-line text-2xl text-red-500"></i>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow-lg p-6 border-t-4 border-purple-600">
+            <div className="bg-dark-card border border-dark-border rounded-lg p-6 hover:border-red-600/50 transition-all duration-300">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">Total Likes</p>
-                  <p className="text-3xl font-bold text-gray-900">{stats.totalLikes}</p>
+                  <p className="text-sm text-gray-400 mb-1">Total Likes</p>
+                  <p className="text-3xl font-bold text-white">{stats.totalLikes}</p>
                 </div>
-                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <i className="ri-heart-line text-2xl text-purple-600"></i>
+                <div className="w-12 h-12 bg-red-600/20 rounded-lg flex items-center justify-center">
+                  <i className="ri-heart-line text-2xl text-red-500"></i>
                 </div>
               </div>
             </div>
@@ -180,7 +182,7 @@ export default function MyContentPage() {
 
         {/* Filters and Search */}
         <div className="max-w-7xl mx-auto px-6 mb-8">
-          <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="bg-dark-card border border-dark-border rounded-lg p-6">
             <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
               {/* Tabs */}
               <div className="flex flex-wrap gap-2">
@@ -190,8 +192,8 @@ export default function MyContentPage() {
                     onClick={() => setActiveTab(tab)}
                     className={`px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap cursor-pointer ${
                       activeTab === tab
-                        ? 'bg-red-600 text-white shadow-md'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        ? 'bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg shadow-red-600/30'
+                        : 'bg-dark-hover border border-dark-border text-gray-300 hover:border-red-600/50 hover:text-white'
                     }`}
                   >
                     {tab.charAt(0).toUpperCase() + tab.slice(1)}
@@ -201,13 +203,13 @@ export default function MyContentPage() {
 
               {/* Search */}
               <div className="relative w-full md:w-80">
-                <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg"></i>
+                <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg"></i>
                 <input
                   type="text"
                   placeholder="Search blogs..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
+                  className="w-full pl-10 pr-4 py-2 bg-dark-hover border border-dark-border text-white rounded-lg focus:outline-none focus:border-red-600 focus:ring-2 focus:ring-red-600/20 transition-all duration-200 placeholder-gray-500 text-sm"
                 />
               </div>
             </div>
@@ -217,15 +219,15 @@ export default function MyContentPage() {
         {/* Content List */}
         <div className="max-w-7xl mx-auto px-6 pb-16">
           {loading ? (
-            <div className="bg-white rounded-lg shadow-md p-12 text-center">
+            <div className="bg-dark-card border border-dark-border rounded-lg p-12 text-center">
               <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-red-600 mx-auto mb-4"></div>
-              <p className="text-gray-500">Loading your content...</p>
+              <p className="text-gray-400">Loading your content...</p>
             </div>
           ) : filteredBlogs.length === 0 ? (
-            <div className="bg-white rounded-lg shadow-md p-12 text-center">
-              <i className="ri-inbox-line text-6xl text-gray-300 mb-4"></i>
-              <h3 className="text-xl font-semibold text-gray-700 mb-2">No blogs found</h3>
-              <p className="text-gray-500">Try adjusting your filters or search query</p>
+            <div className="bg-dark-card border border-dark-border rounded-lg p-12 text-center">
+              <i className="ri-inbox-line text-6xl text-gray-600 mb-4"></i>
+              <h3 className="text-xl font-semibold text-white mb-2">No blogs found</h3>
+              <p className="text-gray-400">Try adjusting your filters or search query</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4">
@@ -235,56 +237,71 @@ export default function MyContentPage() {
                   month: 'short',
                   day: 'numeric'
                 });
+                const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+                const coverImage = blog.cover_image_url
+                  ? (blog.cover_image_url.startsWith('http') ? blog.cover_image_url : `${API_BASE_URL}${blog.cover_image_url}`)
+                  : 'https://images.pexels.com/photos/546819/pexels-photo-546819.jpeg?auto=compress&cs=tinysrgb&w=400';
 
                 return (
                   <div
                     key={blog.id}
-                    className="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200"
+                    className="bg-dark-card border border-dark-border rounded-lg hover:border-red-600/50 hover:shadow-2xl hover:shadow-red-600/10 transition-all duration-300 overflow-hidden"
                   >
                     <div className="p-6">
                       <div className="flex items-start justify-between gap-4">
                         {/* Content Info */}
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-3">
-                            <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
-                              <i className="ri-article-line text-xl text-white"></i>
-                            </div>
-                            <div>
-                              <h3 className="text-lg font-bold text-gray-900">{blog.title}</h3>
-                              <div className="flex items-center gap-3 mt-1">
-                                <span className="text-xs text-gray-500">Blog</span>
-                                {blog.category && (
-                                  <>
-                                    <span className="text-gray-300">•</span>
-                                    <span className="text-xs text-gray-500">{blog.category}</span>
-                                  </>
-                                )}
-                                <span className="text-gray-300">•</span>
-                                <span className={`text-xs px-2 py-1 rounded-full ${
-                                  blog.publish_status === 'published'
-                                    ? 'bg-green-100 text-green-700'
-                                    : 'bg-orange-100 text-orange-700'
-                                }`}>
-                                  {blog.publish_status.charAt(0).toUpperCase() + blog.publish_status.slice(1)}
-                                </span>
+                        <div className="flex gap-4 flex-1">
+                          {/* Thumbnail */}
+                          <div className="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0">
+                            <img
+                              src={coverImage}
+                              alt={blog.title}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="w-8 h-8 bg-red-600/20 rounded-lg flex items-center justify-center">
+                                <i className="ri-article-line text-base text-red-500"></i>
+                              </div>
+                              <div>
+                                <h3 className="text-lg font-bold text-white">{blog.title}</h3>
+                                <div className="flex items-center gap-3 mt-1">
+                                  <span className="text-xs text-gray-400">Blog</span>
+                                  {blog.category && (
+                                    <>
+                                      <span className="text-gray-600">•</span>
+                                      <span className="text-xs text-gray-400">{blog.category}</span>
+                                    </>
+                                  )}
+                                  <span className="text-gray-600">•</span>
+                                  <span className={`text-xs px-2 py-1 rounded-full ${
+                                    blog.publish_status === 'published'
+                                      ? 'bg-red-600/20 text-red-400 border border-red-600/30'
+                                      : 'bg-gray-600/20 text-gray-400 border border-gray-600/30'
+                                  }`}>
+                                    {blog.publish_status.charAt(0).toUpperCase() + blog.publish_status.slice(1)}
+                                  </span>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                          <p className="text-sm text-gray-600 mb-4">{blog.excerpt}</p>
+                            <p className="text-sm text-gray-400 mb-4 line-clamp-2">{blog.excerpt}</p>
 
-                          {/* Stats */}
-                          <div className="flex items-center gap-6 text-sm text-gray-500">
-                            <div className="flex items-center gap-2">
-                              <i className="ri-calendar-line"></i>
-                              <span>{publishDate}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <i className="ri-eye-line"></i>
-                              <span>{blog.views_count || 0} views</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <i className="ri-heart-line"></i>
-                              <span>{blog.likes_count || 0} likes</span>
+                            {/* Stats */}
+                            <div className="flex items-center gap-6 text-sm text-gray-500">
+                              <div className="flex items-center gap-2">
+                                <i className="ri-calendar-line text-red-500"></i>
+                                <span>{publishDate}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <i className="ri-eye-line text-red-500"></i>
+                                <span>{blog.views_count || 0} views</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <i className="ri-heart-line text-red-500"></i>
+                                <span>{blog.likes_count || 0} likes</span>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -293,21 +310,21 @@ export default function MyContentPage() {
                         <div className="flex flex-col gap-2">
                           <button
                             onClick={() => handleEdit(blog)}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 whitespace-nowrap cursor-pointer"
+                            className="px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:shadow-lg hover:shadow-red-600/30 transition-all duration-200 flex items-center gap-2 whitespace-nowrap cursor-pointer"
                           >
                             <i className="ri-edit-line"></i>
                             <span>Edit</span>
                           </button>
                           <button
                             onClick={() => window.location.href = `/news/${blog.id}`}
-                            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2 whitespace-nowrap cursor-pointer"
+                            className="px-4 py-2 bg-dark-hover border border-dark-border text-white rounded-lg hover:border-red-600/50 transition-all duration-200 flex items-center gap-2 whitespace-nowrap cursor-pointer"
                           >
                             <i className="ri-eye-line"></i>
                             <span>View</span>
                           </button>
                           <button
                             onClick={() => handleDelete(blog.id)}
-                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2 whitespace-nowrap cursor-pointer"
+                            className="px-4 py-2 bg-dark-hover border border-dark-border text-red-400 rounded-lg hover:bg-red-600/10 hover:border-red-600/50 transition-all duration-200 flex items-center gap-2 whitespace-nowrap cursor-pointer"
                           >
                             <i className="ri-delete-bin-line"></i>
                             <span>Delete</span>

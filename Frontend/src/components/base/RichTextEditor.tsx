@@ -11,7 +11,6 @@ import { HeadingNode, QuoteNode } from '@lexical/rich-text';
 import { ListItemNode, ListNode } from '@lexical/list';
 import { CodeNode } from '@lexical/code';
 import { LinkNode } from '@lexical/link';
-import { ImageNode } from '@lexical/image';
 import {
   $getRoot,
   $getSelection,
@@ -28,7 +27,6 @@ import { $setBlocksType } from '@lexical/selection';
 import { $createHeadingNode, $createQuoteNode } from '@lexical/rich-text';
 import { INSERT_ORDERED_LIST_COMMAND, INSERT_UNORDERED_LIST_COMMAND } from '@lexical/list';
 import { $createCodeNode } from '@lexical/code';
-import { $createImageNode } from '@lexical/image';
 
 interface RichTextEditorProps {
   value: string;
@@ -121,12 +119,11 @@ function ToolbarPlugin() {
       const imageUrl = `${API_BASE_URL}${data.imageUrl}`;
 
       editor.update(() => {
-        const imageNode = $createImageNode({
-          src: imageUrl,
-          altText: file.name,
-          maxWidth: 800,
-        });
-        $insertNodes([imageNode]);
+        const selection = $getSelection();
+        if (selection) {
+          const textNode = $createTextNode(`[IMAGE:${imageUrl}:${file.name}]`);
+          selection.insertNodes([textNode]);
+        }
       });
     } catch (error) {
       console.error('Error uploading image:', error);
@@ -386,13 +383,6 @@ function nodeToHtml(node: any): string {
     return `<li>${content}</li>`;
   }
 
-  if (type === 'image') {
-    const src = node.__src;
-    const alt = node.__altText || '';
-    const maxWidth = node.__maxWidth || 800;
-    return `<img src="${src}" alt="${alt}" style="max-width:${maxWidth}px;width:100%;height:auto;" />`;
-  }
-
   if (type === 'link') {
     const url = node.__url;
     const content = children.map((child: any) => nodeToHtml(child)).join('');
@@ -401,6 +391,19 @@ function nodeToHtml(node: any): string {
 
   if (type === 'text') {
     let text = node.getTextContent();
+
+    const imageMatch = text.match(/\[IMAGE:(.*?):(.*?)\]/g);
+    if (imageMatch) {
+      imageMatch.forEach((match: string) => {
+        const parts = match.match(/\[IMAGE:(.*?):(.*?)\]/);
+        if (parts) {
+          const src = parts[1];
+          const alt = parts[2] || '';
+          text = text.replace(match, `<img src="${src}" alt="${alt}" style="max-width:800px;width:100%;height:auto;" />`);
+        }
+      });
+      return text;
+    }
 
     if (node.hasFormat('bold')) {
       text = `<strong>${text}</strong>`;
@@ -438,7 +441,6 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Start w
         italic: 'italic',
         underline: 'underline',
       },
-      image: 'editor-image',
     },
     onError: (error: Error) => {
       console.error(error);
@@ -450,7 +452,6 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Start w
       ListItemNode,
       CodeNode,
       LinkNode,
-      ImageNode,
     ],
   };
 
