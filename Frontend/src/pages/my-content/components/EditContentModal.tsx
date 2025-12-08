@@ -1,26 +1,27 @@
 import { useState, useEffect } from 'react';
-
-interface ContentItem {
-  id: string;
-  type: 'blog' | 'document' | 'crossfunction' | 'activity' | 'announcement' | 'job';
-  title: string;
-  description: string;
-  category?: string;
-  status: 'published' | 'draft';
-  publishedDate: string;
-  views: number;
-  likes: number;
-}
+import { BlogPost } from '../../../database/schema';
+import { blogApi } from '../../../services/blog.api';
+import RichTextEditor from '../../../components/base/RichTextEditor';
 
 interface EditContentModalProps {
-  content: ContentItem;
+  blog: BlogPost;
   onClose: () => void;
-  onSave: (content: ContentItem) => void;
+  onSave: () => void;
 }
 
-export default function EditContentModal({ content, onClose, onSave }: EditContentModalProps) {
-  const [formData, setFormData] = useState<ContentItem>(content);
+export default function EditContentModal({ blog, onClose, onSave }: EditContentModalProps) {
+  const [formData, setFormData] = useState({
+    title: blog.title,
+    excerpt: blog.excerpt,
+    content: blog.content,
+    category: blog.category || '',
+    tags: blog.tags || [],
+    publish_status: blog.publish_status
+  });
+  const [coverImage, setCoverImage] = useState<File | null>(null);
+  const [coverImagePreview, setCoverImagePreview] = useState<string>(blog.cover_image_url || '');
   const [isLoading, setIsLoading] = useState(false);
+  const [tagInput, setTagInput] = useState('');
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -29,20 +30,56 @@ export default function EditContentModal({ content, onClose, onSave }: EditConte
     };
   }, []);
 
+  const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setCoverImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCoverImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && tagInput.trim()) {
+      e.preventDefault();
+      if (!formData.tags.includes(tagInput.trim())) {
+        setFormData({
+          ...formData,
+          tags: [...formData.tags, tagInput.trim()]
+        });
+      }
+      setTagInput('');
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    setFormData({
+      ...formData,
+      tags: formData.tags.filter(tag => tag !== tagToRemove)
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent, shouldPublish: boolean = false) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      const updateData = {
+        ...formData,
+        publish_status: shouldPublish ? 'published' as const : formData.publish_status
+      };
 
-    const updatedContent = {
-      ...formData,
-      status: shouldPublish ? 'published' as const : formData.status
-    };
-
-    onSave(updatedContent);
-    setIsLoading(false);
+      await blogApi.updateBlog(blog.id, updateData, coverImage || undefined);
+      onSave();
+    } catch (error) {
+      console.error('Error updating blog:', error);
+      alert('Failed to update blog');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const categories = [
@@ -56,7 +93,7 @@ export default function EditContentModal({ content, onClose, onSave }: EditConte
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="bg-gradient-to-r from-red-600 to-black text-white px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -64,8 +101,8 @@ export default function EditContentModal({ content, onClose, onSave }: EditConte
               <i className="ri-edit-line text-xl"></i>
             </div>
             <div>
-              <h2 className="text-xl font-bold">Edit Content</h2>
-              <p className="text-sm text-red-100">Update your {formData.type} content</p>
+              <h2 className="text-xl font-bold">Edit Blog</h2>
+              <p className="text-sm text-red-100">Update your blog post</p>
             </div>
           </div>
           <button
@@ -79,6 +116,28 @@ export default function EditContentModal({ content, onClose, onSave }: EditConte
         {/* Form */}
         <form onSubmit={(e) => handleSubmit(e, false)} className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
           <div className="space-y-6">
+            {/* Cover Image */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Cover Image
+              </label>
+              {coverImagePreview && (
+                <div className="mb-3">
+                  <img
+                    src={coverImagePreview}
+                    alt="Cover preview"
+                    className="w-full h-48 object-cover rounded-lg"
+                  />
+                </div>
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleCoverImageChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
+              />
+            </div>
+
             {/* Title */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -89,44 +148,86 @@ export default function EditContentModal({ content, onClose, onSave }: EditConte
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
-                placeholder="Enter content title"
+                placeholder="Enter blog title"
                 required
               />
             </div>
 
-            {/* Description */}
+            {/* Excerpt */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Description <span className="text-red-600">*</span>
+                Excerpt <span className="text-red-600">*</span>
               </label>
               <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                rows={4}
+                value={formData.excerpt}
+                onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
+                rows={3}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm resize-none"
-                placeholder="Enter content description"
+                placeholder="Brief summary of your blog"
                 required
               />
             </div>
 
-            {/* Category (if applicable) */}
-            {(formData.type === 'document' || formData.type === 'announcement') && (
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Category
-                </label>
-                <select
-                  value={formData.category || ''}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
-                >
-                  <option value="">Select a category</option>
-                  {categories.map((cat) => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
+            {/* Content */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Content <span className="text-red-600">*</span>
+              </label>
+              <RichTextEditor
+                value={formData.content}
+                onChange={(value) => setFormData({ ...formData, content: value })}
+                placeholder="Write your blog content here..."
+              />
+            </div>
+
+            {/* Category */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Category
+              </label>
+              <select
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
+              >
+                <option value="">Select a category</option>
+                {categories.map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Tags */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Tags
+              </label>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {formData.tags.map((tag, index) => (
+                  <span
+                    key={index}
+                    className="inline-flex items-center gap-1 px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm"
+                  >
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveTag(tag)}
+                      className="hover:text-red-900"
+                    >
+                      <i className="ri-close-line"></i>
+                    </button>
+                  </span>
+                ))}
               </div>
-            )}
+              <input
+                type="text"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={handleAddTag}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
+                placeholder="Type a tag and press Enter"
+              />
+            </div>
 
             {/* Status */}
             <div>
@@ -139,8 +240,8 @@ export default function EditContentModal({ content, onClose, onSave }: EditConte
                     type="radio"
                     name="status"
                     value="draft"
-                    checked={formData.status === 'draft'}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value as 'draft' | 'published' })}
+                    checked={formData.publish_status === 'draft'}
+                    onChange={(e) => setFormData({ ...formData, publish_status: e.target.value as 'draft' | 'published' })}
                     className="w-4 h-4 text-red-600 focus:ring-red-500"
                   />
                   <span className="text-sm text-gray-700">Draft</span>
@@ -150,38 +251,12 @@ export default function EditContentModal({ content, onClose, onSave }: EditConte
                     type="radio"
                     name="status"
                     value="published"
-                    checked={formData.status === 'published'}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value as 'draft' | 'published' })}
+                    checked={formData.publish_status === 'published'}
+                    onChange={(e) => setFormData({ ...formData, publish_status: e.target.value as 'draft' | 'published' })}
                     className="w-4 h-4 text-red-600 focus:ring-red-500"
                   />
                   <span className="text-sm text-gray-700">Published</span>
                 </label>
-              </div>
-            </div>
-
-            {/* Published Date */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Published Date
-              </label>
-              <input
-                type="date"
-                value={formData.publishedDate}
-                onChange={(e) => setFormData({ ...formData, publishedDate: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
-              />
-            </div>
-
-            {/* Content Type Info */}
-            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-              <div className="flex items-center gap-3">
-                <i className="ri-information-line text-xl text-gray-600"></i>
-                <div>
-                  <p className="text-sm font-semibold text-gray-700">Content Type</p>
-                  <p className="text-sm text-gray-600">
-                    {formData.type.charAt(0).toUpperCase() + formData.type.slice(1)}
-                  </p>
-                </div>
               </div>
             </div>
 
@@ -192,14 +267,14 @@ export default function EditContentModal({ content, onClose, onSave }: EditConte
                   <i className="ri-eye-line text-blue-600"></i>
                   <span className="text-sm font-semibold text-gray-700">Views</span>
                 </div>
-                <p className="text-2xl font-bold text-gray-900">{formData.views}</p>
+                <p className="text-2xl font-bold text-gray-900">{blog.views_count || 0}</p>
               </div>
               <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
                 <div className="flex items-center gap-2 mb-1">
                   <i className="ri-heart-line text-purple-600"></i>
                   <span className="text-sm font-semibold text-gray-700">Likes</span>
                 </div>
-                <p className="text-2xl font-bold text-gray-900">{formData.likes}</p>
+                <p className="text-2xl font-bold text-gray-900">{blog.likes_count || 0}</p>
               </div>
             </div>
           </div>

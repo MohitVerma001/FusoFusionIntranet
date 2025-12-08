@@ -3,25 +3,17 @@ import GlobalNav from '../../components/feature/GlobalNav';
 import SecondaryNav from '../../components/feature/SecondaryNav';
 import Footer from '../../components/feature/Footer';
 import EditContentModal from './components/EditContentModal';
-
-interface ContentItem {
-  id: string;
-  type: 'blog' | 'document' | 'crossfunction' | 'activity' | 'announcement' | 'job';
-  title: string;
-  description: string;
-  category?: string;
-  status: 'published' | 'draft';
-  publishedDate: string;
-  views: number;
-  likes: number;
-}
+import { blogApi } from '../../services/blog.api';
+import { BlogPost } from '../../database/schema';
 
 export default function MyContentPage() {
   const [isScrolled, setIsScrolled] = useState(false);
-  const [activeTab, setActiveTab] = useState<'all' | 'blog' | 'document' | 'crossfunction' | 'activity' | 'announcement' | 'job'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'published' | 'draft'>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedContent, setSelectedContent] = useState<ContentItem | null>(null);
+  const [selectedBlog, setSelectedBlog] = useState<BlogPost | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [blogs, setBlogs] = useState<BlogPost[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -36,132 +28,63 @@ export default function MyContentPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Mock data - replace with actual data from your backend
-  const [contents, setContents] = useState<ContentItem[]>([
-    {
-      id: '1',
-      type: 'blog',
-      title: 'Understanding Project Hyperion Changes',
-      description: 'A comprehensive guide to the new HR system changes coming with Project Hyperion.',
-      category: 'HR Development',
-      status: 'published',
-      publishedDate: '2025-01-15',
-      views: 234,
-      likes: 45
-    },
-    {
-      id: '2',
-      type: 'document',
-      title: 'Employee Onboarding Checklist 2025',
-      description: 'Complete checklist for new employee onboarding process.',
-      category: 'Onboarding',
-      status: 'published',
-      publishedDate: '2025-01-10',
-      views: 156,
-      likes: 28
-    },
-    {
-      id: '3',
-      type: 'crossfunction',
-      title: 'Cross-Department Collaboration Initiative',
-      description: 'New initiative to improve collaboration between departments.',
-      status: 'draft',
-      publishedDate: '2025-01-08',
-      views: 89,
-      likes: 12
-    },
-    {
-      id: '4',
-      type: 'activity',
-      title: 'Team Building Workshop - Q1 2025',
-      description: 'Quarterly team building activities and workshops.',
-      status: 'published',
-      publishedDate: '2025-01-05',
-      views: 312,
-      likes: 67
-    },
-    {
-      id: '5',
-      type: 'announcement',
-      title: 'New Benefits Package Announcement',
-      description: 'Important updates to employee benefits starting February 2025.',
-      category: 'Compensation',
-      status: 'published',
-      publishedDate: '2025-01-03',
-      views: 445,
-      likes: 89
-    },
-    {
-      id: '6',
-      type: 'job',
-      title: 'Senior Software Engineer - Tokyo',
-      description: 'We are looking for an experienced software engineer to join our team.',
-      status: 'published',
-      publishedDate: '2024-12-28',
-      views: 523,
-      likes: 34
+  useEffect(() => {
+    fetchMyBlogs();
+  }, []);
+
+  const fetchMyBlogs = async () => {
+    try {
+      setLoading(true);
+      const response = await blogApi.getMyBlogs({ limit: 100 });
+      setBlogs(response.data.blogs);
+    } catch (error) {
+      console.error('Error fetching my blogs:', error);
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
 
   // Filter contents based on tab and search
-  const filteredContents = useMemo(() => {
-    return contents.filter(content => {
-      const matchesTab = activeTab === 'all' || content.type === activeTab;
+  const filteredBlogs = useMemo(() => {
+    return blogs.filter(blog => {
+      const matchesTab = activeTab === 'all' || blog.publish_status === activeTab;
       const matchesSearch = searchQuery === '' ||
-        content.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        content.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (content.category && content.category.toLowerCase().includes(searchQuery.toLowerCase()));
+        blog.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        blog.excerpt.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (blog.category && blog.category.toLowerCase().includes(searchQuery.toLowerCase()));
       return matchesTab && matchesSearch;
     });
-  }, [activeTab, searchQuery, contents]);
+  }, [activeTab, searchQuery, blogs]);
 
-  const handleEdit = (content: ContentItem) => {
-    setSelectedContent(content);
+  const handleEdit = (blog: BlogPost) => {
+    setSelectedBlog(blog);
     setIsEditModalOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    if (window.confirm('Are you sure you want to delete this content?')) {
-      setContents(contents.filter(c => c.id !== id));
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this blog?')) {
+      try {
+        await blogApi.deleteBlog(id);
+        setBlogs(blogs.filter(b => b.id !== id));
+      } catch (error) {
+        console.error('Error deleting blog:', error);
+        alert('Failed to delete blog');
+      }
     }
   };
 
-  const handleSaveEdit = (updatedContent: ContentItem) => {
-    setContents(contents.map(c => c.id === updatedContent.id ? updatedContent : c));
+  const handleSaveEdit = async () => {
     setIsEditModalOpen(false);
-    setSelectedContent(null);
-  };
-
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'blog': return 'ri-article-line';
-      case 'document': return 'ri-file-text-line';
-      case 'crossfunction': return 'ri-team-line';
-      case 'activity': return 'ri-calendar-event-line';
-      case 'announcement': return 'ri-megaphone-line';
-      case 'job': return 'ri-briefcase-line';
-      default: return 'ri-file-line';
-    }
-  };
-
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'blog': return 'bg-blue-500';
-      case 'document': return 'bg-green-500';
-      case 'crossfunction': return 'bg-purple-500';
-      case 'activity': return 'bg-orange-500';
-      case 'announcement': return 'bg-red-500';
-      case 'job': return 'bg-teal-500';
-      default: return 'bg-gray-500';
-    }
+    setSelectedBlog(null);
+    await fetchMyBlogs();
   };
 
   const stats = {
-    total: contents.length,
-    published: contents.filter(c => c.status === 'published').length,
-    draft: contents.filter(c => c.status === 'draft').length,
-    totalViews: contents.reduce((sum, c) => sum + c.views, 0),
-    totalLikes: contents.reduce((sum, c) => sum + c.likes, 0)
+    total: blogs.length,
+    published: blogs.filter(b => b.publish_status === 'published').length,
+    draft: blogs.filter(b => b.publish_status === 'draft').length,
+    totalViews: blogs.reduce((sum, b) => sum + (b.views_count || 0), 0),
+    totalLikes: blogs.reduce((sum, b) => sum + (b.likes_count || 0), 0)
   };
 
   return (
@@ -261,10 +184,10 @@ export default function MyContentPage() {
             <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
               {/* Tabs */}
               <div className="flex flex-wrap gap-2">
-                {['all', 'blog', 'document', 'crossfunction', 'activity', 'announcement', 'job'].map((tab) => (
+                {(['all', 'published', 'draft'] as const).map((tab) => (
                   <button
                     key={tab}
-                    onClick={() => setActiveTab(tab as any)}
+                    onClick={() => setActiveTab(tab)}
                     className={`px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap cursor-pointer ${
                       activeTab === tab
                         ? 'bg-red-600 text-white shadow-md'
@@ -281,7 +204,7 @@ export default function MyContentPage() {
                 <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg"></i>
                 <input
                   type="text"
-                  placeholder="Search content..."
+                  placeholder="Search blogs..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
@@ -293,101 +216,108 @@ export default function MyContentPage() {
 
         {/* Content List */}
         <div className="max-w-7xl mx-auto px-6 pb-16">
-          {filteredContents.length === 0 ? (
+          {loading ? (
+            <div className="bg-white rounded-lg shadow-md p-12 text-center">
+              <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-red-600 mx-auto mb-4"></div>
+              <p className="text-gray-500">Loading your content...</p>
+            </div>
+          ) : filteredBlogs.length === 0 ? (
             <div className="bg-white rounded-lg shadow-md p-12 text-center">
               <i className="ri-inbox-line text-6xl text-gray-300 mb-4"></i>
-              <h3 className="text-xl font-semibold text-gray-700 mb-2">No content found</h3>
+              <h3 className="text-xl font-semibold text-gray-700 mb-2">No blogs found</h3>
               <p className="text-gray-500">Try adjusting your filters or search query</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4">
-              {filteredContents.map((content) => (
-                <div
-                  key={content.id}
-                  className="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200"
-                >
-                  <div className="p-6">
-                    <div className="flex items-start justify-between gap-4">
-                      {/* Content Info */}
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-3">
-                          <div className={`w-10 h-10 ${getTypeColor(content.type)} rounded-lg flex items-center justify-center`}>
-                            <i className={`${getTypeIcon(content.type)} text-xl text-white`}></i>
+              {filteredBlogs.map((blog) => {
+                const publishDate = new Date(blog.published_at || blog.created_at).toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric'
+                });
+
+                return (
+                  <div
+                    key={blog.id}
+                    className="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200"
+                  >
+                    <div className="p-6">
+                      <div className="flex items-start justify-between gap-4">
+                        {/* Content Info */}
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
+                              <i className="ri-article-line text-xl text-white"></i>
+                            </div>
+                            <div>
+                              <h3 className="text-lg font-bold text-gray-900">{blog.title}</h3>
+                              <div className="flex items-center gap-3 mt-1">
+                                <span className="text-xs text-gray-500">Blog</span>
+                                {blog.category && (
+                                  <>
+                                    <span className="text-gray-300">•</span>
+                                    <span className="text-xs text-gray-500">{blog.category}</span>
+                                  </>
+                                )}
+                                <span className="text-gray-300">•</span>
+                                <span className={`text-xs px-2 py-1 rounded-full ${
+                                  blog.publish_status === 'published'
+                                    ? 'bg-green-100 text-green-700'
+                                    : 'bg-orange-100 text-orange-700'
+                                }`}>
+                                  {blog.publish_status.charAt(0).toUpperCase() + blog.publish_status.slice(1)}
+                                </span>
+                              </div>
+                            </div>
                           </div>
-                          <div>
-                            <h3 className="text-lg font-bold text-gray-900">{content.title}</h3>
-                            <div className="flex items-center gap-3 mt-1">
-                              <span className="text-xs text-gray-500">
-                                {content.type.charAt(0).toUpperCase() + content.type.slice(1)}
-                              </span>
-                              {content.category && (
-                                <>
-                                  <span className="text-gray-300">•</span>
-                                  <span className="text-xs text-gray-500">{content.category}</span>
-                                </>
-                              )}
-                              <span className="text-gray-300">•</span>
-                              <span className={`text-xs px-2 py-1 rounded-full ${
-                                content.status === 'published'
-                                  ? 'bg-green-100 text-green-700'
-                                  : 'bg-orange-100 text-orange-700'
-                              }`}>
-                                {content.status.charAt(0).toUpperCase() + content.status.slice(1)}
-                              </span>
+                          <p className="text-sm text-gray-600 mb-4">{blog.excerpt}</p>
+
+                          {/* Stats */}
+                          <div className="flex items-center gap-6 text-sm text-gray-500">
+                            <div className="flex items-center gap-2">
+                              <i className="ri-calendar-line"></i>
+                              <span>{publishDate}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <i className="ri-eye-line"></i>
+                              <span>{blog.views_count || 0} views</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <i className="ri-heart-line"></i>
+                              <span>{blog.likes_count || 0} likes</span>
                             </div>
                           </div>
                         </div>
-                        <p className="text-sm text-gray-600 mb-4">{content.description}</p>
-                        
-                        {/* Stats */}
-                        <div className="flex items-center gap-6 text-sm text-gray-500">
-                          <div className="flex items-center gap-2">
-                            <i className="ri-calendar-line"></i>
-                            <span>{new Date(content.publishedDate).toLocaleDateString('en-US', { 
-                              year: 'numeric', 
-                              month: 'short', 
-                              day: 'numeric' 
-                            })}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <i className="ri-eye-line"></i>
-                            <span>{content.views} views</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <i className="ri-heart-line"></i>
-                            <span>{content.likes} likes</span>
-                          </div>
-                        </div>
-                      </div>
 
-                      {/* Actions */}
-                      <div className="flex flex-col gap-2">
-                        <button
-                          onClick={() => handleEdit(content)}
-                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 whitespace-nowrap cursor-pointer"
-                        >
-                          <i className="ri-edit-line"></i>
-                          <span>Edit</span>
-                        </button>
-                        <button
-                          onClick={() => window.REACT_APP_NAVIGATE(`/${content.type}/${content.id}`)}
-                          className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2 whitespace-nowrap cursor-pointer"
-                        >
-                          <i className="ri-eye-line"></i>
-                          <span>View</span>
-                        </button>
-                        <button
-                          onClick={() => handleDelete(content.id)}
-                          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2 whitespace-nowrap cursor-pointer"
-                        >
-                          <i className="ri-delete-bin-line"></i>
-                          <span>Delete</span>
-                        </button>
+                        {/* Actions */}
+                        <div className="flex flex-col gap-2">
+                          <button
+                            onClick={() => handleEdit(blog)}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 whitespace-nowrap cursor-pointer"
+                          >
+                            <i className="ri-edit-line"></i>
+                            <span>Edit</span>
+                          </button>
+                          <button
+                            onClick={() => window.location.href = `/news/${blog.id}`}
+                            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2 whitespace-nowrap cursor-pointer"
+                          >
+                            <i className="ri-eye-line"></i>
+                            <span>View</span>
+                          </button>
+                          <button
+                            onClick={() => handleDelete(blog.id)}
+                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2 whitespace-nowrap cursor-pointer"
+                          >
+                            <i className="ri-delete-bin-line"></i>
+                            <span>Delete</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -396,12 +326,12 @@ export default function MyContentPage() {
       <Footer />
 
       {/* Edit Modal */}
-      {isEditModalOpen && selectedContent && (
+      {isEditModalOpen && selectedBlog && (
         <EditContentModal
-          content={selectedContent}
+          blog={selectedBlog}
           onClose={() => {
             setIsEditModalOpen(false);
-            setSelectedContent(null);
+            setSelectedBlog(null);
           }}
           onSave={handleSaveEdit}
         />
